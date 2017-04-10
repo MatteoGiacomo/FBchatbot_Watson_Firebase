@@ -1,23 +1,3 @@
-/*
-	TODO
-
-	- formattare la struttura dei dati del json per poter implementare in modo definitivo le altre funzionalità del menù 
-
-	- finere la gestione delle azioni dei payload del menù 
-
-	- importare il copy da un file separato
-	
-	- gestire EXTEND dell'oggetto attchments per inviare più tamplate generici in un unico messaggio 
-	(utile principalemnte per il display delel storie all'utente: far scegliere la storia da continuare o far scegliere la sotira da riascoltare / leggere) 
-	attachemtns sono un array di oggetti con un massimo di 10 elementi
-	
-	- PROBLEMA DA RISOLVERE : 
-	qualcosa rimane in ascolto e appena viene aggiutno un elemento a database riscrive gli elementi precedenti più il nuovo
-	(sembra un watcher) e se lo elimino da firebase lo elimina anche dalla conversazione messanger
-
-
- */
-
 var express = require('express');
 var path = require('path');
 var logger = require('morgan');
@@ -46,16 +26,16 @@ app.use('/users', users);
 
 
 // Facebook account settings
-var token = "EAASEgg7UEFkBAEdyAZAVl5qYmCjNGeSMHZCPSPz9YBV7EL6iblMzYJ0o8LE3vKeNWc4i6jyDkzKZAj7hRcyafA4klERKzt4rZCcOyFNLN7L27AeMDEGVPzVay6iMyxTPb6KFnI8ZBA16ilykkegYOLyDcCI86kd7vcgZB0SbqaoAZDZD";
+var token = "_____YOUR_FACEBOOK_TOKEN_________";
 var profileUser = new Object();
 
 
 // Watson account settings 
 var watson = require('watson-developer-cloud');
-var workspaceId = 'e07cda4a-e347-4952-9af7-4a532975d11f';
+var workspaceId = '____YOUR_WATSON_ID_WORKSPACE____';
 var conversation = watson.conversation({
-  username: '4b15c183-c7a6-42ee-8701-e1562ef3517c',
-  password: 'vijttQTiI8Gb',
+  username: '____YOUR_WATSON_USERNAME____',
+  password: '____YOUR_WATSON_PASSWORD____',
   version: 'v1',
   version_date: '2016-09-20'
 });
@@ -65,10 +45,10 @@ var risposta ='';
 
 // Firebase account settings
 var config = {
-	apiKey: "AIzaSyCBxOiwDQ-1jhE1vfvKNd9rpD1tidTECmA",
-	authDomain: "folkstory-cc8a9.firebaseapp.com",
-	databaseURL: "https://folkstory-cc8a9.firebaseio.com",
-	storageBucket: "folkstory-cc8a9.appspot.com"
+	apiKey: "____YOUR_FIREBASE_CONFIG____",
+	authDomain: "____YOUR_FIREBASE_CONFIG____",
+	databaseURL: "____YOUR_FIREBASE_CONFIG____",
+	storageBucket: "____YOUR_FIREBASE_CONFIG____"
 };
 
 firebase.initializeApp(config);
@@ -87,9 +67,9 @@ var message_noStories = "Purtroppo non abbiamo trovato storie.";
 // =========== IBM WATSON ===========
 
 /**
- * conversationWatson chiamata al workspace conversation in Watson, invio del testo e si riceve la risposta con 'attinenza all'intento
- * @param  {string} textMessage: invio del messaggio ricevuto dall'utente per la verifica
- * @return {Object}         ritorno di un oggetto che contiente il messaggio di risposta, il contesto e la struttura del dialogo
+ * conversationWatson send information to your Watson Conversation workspace where you can set context, dialogues etc ... 
+ * @param  {string} textMessage: text from users 
+ * @return {Object}         object with response text, conversation context and dialogue nodes
  */
 function conversationWatson (textMessage, context, recipientId){
 	conversation.message({
@@ -100,7 +80,6 @@ function conversationWatson (textMessage, context, recipientId){
 			if (err)
 				console.log('error:', err);
 			else {
-				//console.log(JSON.stringify(response, null, 2));
 				risposta = response.output.text[0];
 				contextResponse = response.context;
 				console.log (contextResponse)
@@ -353,8 +332,6 @@ app.get('/webhook', function (req, res) {
 
 
 app.post('/webhook', function (req, res) {
-
-	console.log(req.body.entry[0].messaging[0]);
 	
 	if (req.body.entry[0].messaging[0]) {
 
@@ -380,40 +357,17 @@ app.post('/webhook', function (req, res) {
 			};
 
 			// MENU
-			// _nuova storia
+			// _new story
 			if (payload == 'new_story'){
 
-				// --> invio di un messaggio che chiarisce la metodologia
-				// --> richeista del titolo
-				// scelta delle categorie tramite messaggio template 
+				// WORK IN PROGRESS 
 				sentTextMessage(recipientId, "Come chiamiamo la sotria ?")
-				// --> messaggio di buon inizio della storia 
-				
 				sendTextMessage(recipientId, messageInit);
 			};
 
 			// _ascolta storia 
 			if (payload == 'listen_story') {
-
-				// --> controllo se esistono storie complete da cercare
-						// se non esistono
-								// --> CTA per iniziarne una 
-								// --> CTA per continuare una storia già esistente ma non completa
-				
-				// firebase.database().ref('stories/').once('value').then(function(snapshot){
-				// 	var audioUrl = snapshot.val().url;
-				// 	sendAudio(recipientId, audioUrl);
-				// });
-				// 
-				
-				// firebase.database().ref('stories/').once('value').then(function(snapshot){
-				// 	var keyUrl = snapshot.child;
-				// 	// var str = JSON.stringify(keyUrl, null, 4)
-				// 	// console.log('OGGETTO: '+ str);
-				// 	console.log('KEY: '+ keyUrl);
-
-				// });
-
+				// WORK IN PROGRESS
 				refDB.orderByChild('senderId').equalTo(recipientId).on("child_added", function(snapshot) {
 				  var username = snapshot.val();
 				  sendAudio(recipientId, username.audio.url);
@@ -423,23 +377,13 @@ app.post('/webhook', function (req, res) {
 
 			//_continua una storia
 			if (payload == 'add_chapter') {
-
-				// --> prelevare una o più storie a random che non abbiano una relazione con lo user
-				// --> spedirle come message template - max 4/5 per volta
-						// --> spedire l'ultimo audio della storia con il titolo 
-						// --> spedire delle quick_raply con delle CTA 
-								// se la storia piace --> continua con messaggio di incoraggiamento a parlare
-								// se la storia non piace --> tornare al menù precedente
-								// se la storia è da segnalare per volgarità --> segnala 
-
+				// WORK IN PROGRESS
 				sendTextMessage(recipientId, messageInit);
 			};
 
 			//_le mie storie
 			if (payload == 'my_stories') {
-
-				// TODO 
-				// - gestione ordine stories da visualizzare (non sempre le visualizza nell'ordine corretto)
+				// WORK IN PROGRESS
 				refDB.orderByChild('senderId').equalTo(recipientId).on("value", function(snapshot) {
 
 				  if (snapshot.exists()) {
@@ -454,8 +398,8 @@ app.post('/webhook', function (req, res) {
 				  }  
 
 				  if (!snapshot.exists()){
-				  	// --> CTA per iniziarne una nuova storia
-						// --> CTA per continuare una storia già esistente ma non completa
+				  	// WORK IN PROGRESS
+					// TODO refactor
 				 	var messageData = {
 					    recipient: {
 					      id: recipientId
@@ -501,10 +445,6 @@ app.post('/webhook', function (req, res) {
 				sendMessageButton(recipientId, messageHelp, labelBtn, urlSite);
 			}
 
-			// CATEGORIE selezione
-			// (o da new_story o da  )
-
-			
 			if (payload == 'CATEGORIES[0].type'){
 			}
 
@@ -538,22 +478,18 @@ app.post('/webhook', function (req, res) {
 
 				// message: text
 				if (req.body.entry[0].messaging[0].message.text) {
-					// conversationWatson(req.body.entry[0].messaging[0].message.text, contextResponse, recipientId);
-					saveAudioStory(recipientId, req.body.entry[0].messaging[0].message.text);
-					console.log (payload);
+					conversationWatson(req.body.entry[0].messaging[0].message.text, contextResponse, recipientId);
 				}
 
 				// message: audio, photo, video
 				if (req.body.entry[0].messaging[0].message.attachments){
 
-					// if (req.body.entry[0].messaging[0].message.attachments[0].type == 'audio') {
+					 if (req.body.entry[0].messaging[0].message.attachments[0].type == 'audio') {
+						// if the message is an audio message, it will be saved in Firebase
+					 	var audioUrl = req.body.entry[0].messaging[0].message.attachments[0].payload;
+						saveAudioStory(recipientId, audioUrl);
 
-					// 	var audioUrl = req.body.entry[0].messaging[0].message.attachments[0].payload;
-					// 	saveAudioStory(recipientId, audioUrl);
-
-					// }
-					// 
-					console.log ('INVIATO UN ATTACHMENTS');
+					}
 				}
 			};
 
